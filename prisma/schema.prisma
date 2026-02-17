@@ -8,15 +8,18 @@ datasource db {
 }
 
 model Module {
-    id             String           @id
-    name           String
-    slug           String           @unique
-    type           ModuleType
-    parentId       String?
-    order          Int              @default(0)
-    isActive       Boolean          @default(true)
-    Module         Module?          @relation("ModuleToModule", fields: [parentId], references: [id])
-    other_Module   Module[]         @relation("ModuleToModule")
+    id       String     @id @default(cuid())
+    name     String
+    slug     String     @unique
+    type     ModuleType @default(PAGE)
+    parentId String?
+    icon     String?
+    order    Int        @default(99)
+    isActive Boolean    @default(true)
+
+    parent   Module?  @relation("ModuleToModule", fields: [parentId], references: [id])
+    children Module[] @relation("ModuleToModule")
+
     RolePermission RolePermission[]
     UserPermission UserPermission[]
 
@@ -75,6 +78,6 @@ model UserPermission {
 }
 
 enum ModuleType {
-    GROUP
+    FOLDER
     PAGE
 }

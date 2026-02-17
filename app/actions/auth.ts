@@ -35,13 +35,19 @@ export async function signup(prevState: any, formData: FormData) {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Get default role (admin for now as discussed)
-        const role = await prisma.role.findFirst({
-            where: { name: 'admin' } // Case sensitive check? The output showed 'admin'.
+        // Get default role (guest)
+        let role = await prisma.role.findFirst({
+            where: { name: 'guest' }
         });
 
+        // If guest role doesn't exist, create it
         if (!role) {
-            return { error: 'Default role not found. Please contact administrator.' };
+            role = await prisma.role.create({
+                data: {
+                    id: crypto.randomUUID(),
+                    name: 'guest',
+                }
+            });
         }
 
         // Create user

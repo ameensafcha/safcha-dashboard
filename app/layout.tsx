@@ -37,9 +37,11 @@ export default async function RootLayout({
         <SidebarProvider>
           <SidebarComponent user={user} />
           <main className="flex-1 min-h-screen bg-gray-50 text-gray-900 w-full">
-            <div className="p-4">
-              <SidebarTrigger />
-            </div>
+            {user && (
+              <div className="p-4">
+                <SidebarTrigger />
+              </div>
+            )}
             {children}
           </main>
         </SidebarProvider>
