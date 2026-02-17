@@ -1,5 +1,5 @@
 
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, hasAdminAccess } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import {
     Card,
@@ -23,7 +23,7 @@ export default async function DashboardPage() {
     const canReadCount = permissions.filter((p: any) => p.canRead).length;
     const canWriteCount = permissions.filter((p: any) => p.canCreate || p.canUpdate).length;
 
-    const isAdmin = Role?.name === 'admin';
+    const isAdmin = hasAdminAccess(user);
 
     return (
         <div className="p-8 space-y-8">

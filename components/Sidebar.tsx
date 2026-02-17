@@ -27,6 +27,7 @@ import {
     SidebarMenuButton,
     SidebarMenuSub,
     SidebarRail,
+    SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -52,8 +53,11 @@ export default function SidebarComponent({ user }: { user: any }) {
         return null;
     }
 
-    // Get user's permissions
-    const rolePermissions = user.Role.RolePermission;
+    // Compute admin access from permissions (permission-based, not hardcoded role name)
+    const rolePermissions = user.Role?.RolePermission || [];
+    const isAdmin = rolePermissions.some((p: any) => 
+        p.canCreate && p.canUpdate && p.canDelete && p.canRead
+    );
 
     // Filter permissions where canRead is true and flatten Module structure
     const accessibleModules = rolePermissions
@@ -160,6 +164,9 @@ export default function SidebarComponent({ user }: { user: any }) {
 
     return (
         <Sidebar collapsible="icon" className="border-r border-border/50">
+            <SidebarHeader className="py-2">
+                <SidebarTrigger className="ml-auto h-8 w-8" />
+            </SidebarHeader>
             <SidebarContent className="px-3 py-4">
                 <div className="h-4"></div>
                 <SidebarMenu className="gap-3">
@@ -186,18 +193,10 @@ export default function SidebarComponent({ user }: { user: any }) {
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild className="hover:bg-sidebar-accent/50 text-muted-foreground" tooltip="Back to Dashboard">
-                                    <Link href="/dashboard" className="font-medium">
-                                        <ChevronLeft className="h-4 w-4 mr-3" />
-                                        <span>Back to Dashboard</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
                         </>
                     ) : (
                         <>
-                            {user.Role?.name === 'admin' && (
+                            {isAdmin && (
                                 <SidebarMenuItem>
                                     <SidebarMenuButton
                                         asChild
@@ -219,7 +218,7 @@ export default function SidebarComponent({ user }: { user: any }) {
 
             <SidebarFooter>
                 <div className="p-2">
-                    {user.Role?.name === 'admin' && (
+                    {isAdmin && (
                         <SidebarMenu>
                             <SidebarMenuItem>
                                 <SidebarMenuButton asChild tooltip="Settings">

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, hasAdminAccess } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -17,7 +17,7 @@ const createModuleSchema = z.object({
 export async function createModule(formData: FormData) {
     const user = await getCurrentUser();
 
-    if (!user || user.Role?.name !== "admin") {
+    if (!user || !hasAdminAccess(user)) {
         return { error: "Unauthorized" };
     }
 
@@ -84,8 +84,8 @@ export async function createModule(formData: FormData) {
             });
         }
 
-        // 3. Auto-create "Dashboard" child if it's a FOLDER
-        if (type === "FOLDER") {
+        // 3. Auto-create "Dashboard" child if it's a TOP-LEVEL FOLDER (parentId = null)
+        if (type === "FOLDER" && parentId === null) {
             const dashboardSlug = `${slug}-dashboard`;
             // Ensure uniqueness (basic check, assume parent slug is unique enough for now)
 
@@ -164,8 +164,21 @@ async function deleteModuleRecursive(moduleId: string) {
 export async function deleteModule(moduleId: string) {
     const user = await getCurrentUser();
 
-    if (!user || user.Role?.name !== "admin") {
+    if (!user || !hasAdminAccess(user)) {
         return { error: "Unauthorized" };
+    }
+
+    if (!moduleId || typeof moduleId !== 'string') {
+        return { error: "Invalid module ID" };
+    }
+
+    const existingModule = await prisma.module.findUnique({
+        where: { id: moduleId },
+        select: { id: true }
+    });
+
+    if (!existingModule) {
+        return { error: "Module not found" };
     }
 
     try {

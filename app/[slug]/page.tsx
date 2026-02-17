@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, hasModulePermission } from "@/lib/auth";
 import { ICON_MAP } from "@/lib/icons";
 import { Package, FileText, ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -47,11 +47,9 @@ export default async function DynamicModulePage(props: Props) {
         notFound();
     }
 
-    // Check Permissions (Basic check - if user has any permission on this module)
-    // In a real app, strict checks (canRead) should be enforced.
-    // Assuming the sidebar handles visibility, but for direct access:
-    const userPermission = user.Role.RolePermission.find((p: any) => p.moduleId === module.id);
-    const hasAccess = user.Role.name === 'admin' || (userPermission && userPermission.canRead);
+    // Check Permissions using hasModulePermission helper
+    // This checks both RolePermission and UserPermission tables
+    const hasAccess = hasModulePermission(user, module.id, 'canRead');
 
     if (!hasAccess) {
         return (
