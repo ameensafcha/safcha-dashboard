@@ -55,7 +55,7 @@ export default function SidebarComponent({ user }: { user: any }) {
 
     // Compute admin access from permissions (permission-based, not hardcoded role name)
     const rolePermissions = user.Role?.RolePermission || [];
-    const isAdmin = rolePermissions.some((p: any) => 
+    const isAdmin = user.Role?.name === 'admin' || rolePermissions.some((p: any) =>
         p.canCreate && p.canUpdate && p.canDelete && p.canRead
     );
 
@@ -181,6 +181,14 @@ export default function SidebarComponent({ user }: { user: any }) {
                                         <ShieldAlert className="h-5 w-5 mr-3" />
                                         <span>Admin Mode</span>
                                     </div>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton asChild className="hover:bg-sidebar-accent/50" tooltip="Users">
+                                    <Link href="/admindashboard/users" className="font-medium">
+                                        <Users className="h-4 w-4 mr-3" />
+                                        <span>Users</span>
+                                    </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                             <SidebarMenuItem>

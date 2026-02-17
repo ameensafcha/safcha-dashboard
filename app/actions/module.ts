@@ -84,20 +84,20 @@ export async function createModule(formData: FormData) {
             });
         }
 
-        // 3. Auto-create "Dashboard" child if it's a TOP-LEVEL FOLDER (parentId = null)
-        if (type === "FOLDER" && parentId === null) {
+        // 3. Auto-create "Dashboard" child for ALL TOP-LEVEL modules (parentId = null)
+        // Type will be DASHBOARD for auto-created dashboard page
+        if (parentId === null) {
             const dashboardSlug = `${slug}-dashboard`;
-            // Ensure uniqueness (basic check, assume parent slug is unique enough for now)
 
             try {
                 const dashboardModule = await prisma.module.create({
                     data: {
                         name: "Dashboard",
                         slug: dashboardSlug,
-                        type: "PAGE",
+                        type: "DASHBOARD",
                         parentId: newModule.id,
-                        order: 1, // First item
-                        icon: "FaChartBar", // Default dashboard icon
+                        order: 1,
+                        icon: "FaChartBar",
                     }
                 });
 
@@ -109,7 +109,7 @@ export async function createModule(formData: FormData) {
                             roleId: user.roleId,
                             moduleId: dashboardModule.id,
                             canCreate: true,
-                            canRead: true, // Visible
+                            canRead: true,
                             canUpdate: true,
                             canDelete: true,
                         },
@@ -117,7 +117,6 @@ export async function createModule(formData: FormData) {
                 }
             } catch (err) {
                 console.error("Failed to auto-create dashboard child:", err);
-                // Don't fail the whole request if this optional step fails
             }
         }
 

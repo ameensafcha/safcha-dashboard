@@ -55,6 +55,9 @@ model User {
     email          String           @unique
     password       String
     roleId         String
+    isActive       Boolean          @default(true)
+    createdAt      DateTime         @default(now())
+    updatedAt      DateTime         @updatedAt
     Role           Role             @relation(fields: [roleId], references: [id])
     UserPermission UserPermission[]
 
@@ -80,4 +83,5 @@ model UserPermission {
 enum ModuleType {
     FOLDER
     PAGE
+    DASHBOARD
 }

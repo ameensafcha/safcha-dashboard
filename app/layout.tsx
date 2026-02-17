@@ -5,6 +5,7 @@ import "./globals.css";
 import SidebarComponent from "@/components/Sidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import SessionProvider from "@/components/SessionProvider";
+import { Toaster } from "@/components/ui/toaster";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,6 +43,7 @@ export default async function RootLayout({
               {children}
             </main>
           </SidebarProvider>
+          <Toaster />
         </SessionProvider>
       </body>
     </html>

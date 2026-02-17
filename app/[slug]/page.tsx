@@ -76,12 +76,13 @@ export default async function DynamicModulePage(props: Props) {
 
     // Determine content based on type
     const isFolder = module.type === 'FOLDER';
+    const isDashboard = module.type === 'DASHBOARD';
 
     // Title Logic
-    const isDashboardChild = module.name === "Dashboard" && module.parent;
+    const isDashboardChild = module.type === 'DASHBOARD' && module.parent;
     const pageTitle = isDashboardChild
         ? `${module.parent?.name} Dashboard`
-        : `${module.name} Dashboard`;
+        : module.name;
 
     return (
         <div className="p-8 space-y-8 animate-in fade-in duration-500">
@@ -158,18 +159,14 @@ export default async function DynamicModulePage(props: Props) {
                 <div className="grid gap-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Overview</CardTitle>
+                            <CardTitle>{module.name}</CardTitle>
                             <CardDescription>
-                                This is the main dashboard for the {module.name} module.
+                                Module: {module.slug}
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="h-[300px] flex items-center justify-center border-t bg-secondary/5">
+                        <CardContent className="min-h-[400px] flex items-center justify-center border-t bg-secondary/5">
                             <div className="text-center space-y-2">
-                                <FileText className="h-10 w-10 text-muted-foreground mx-auto opacity-20" />
-                                <p className="text-muted-foreground">Module content goes here.</p>
-                                <p className="text-xs text-muted-foreground/50">
-                                    Slug: {slug} | Type: {module.type}
-                                </p>
+                                <p className="text-muted-foreground">This module has no content yet.</p>
                             </div>
                         </CardContent>
                     </Card>

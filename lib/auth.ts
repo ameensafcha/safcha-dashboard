@@ -90,28 +90,30 @@ export async function logoutSession() {
 
 export function hasAdminAccess(user: any): boolean {
     if (!user || !user.Role) return false;
-    
+
+    if (user.Role.name === 'admin') return true;
+
     const permissions = user.Role.RolePermission || [];
-    
-    const adminPermission = permissions.find((p: any) => 
-        p.canCreate === true && 
-        p.canUpdate === true && 
+
+    const adminPermission = permissions.find((p: any) =>
+        p.canCreate === true &&
+        p.canUpdate === true &&
         p.canDelete === true &&
         p.canRead === true
     );
-    
+
     return !!adminPermission;
 }
 
 export function hasModulePermission(user: any, moduleId: string, permission: 'canRead' | 'canCreate' | 'canUpdate' | 'canDelete'): boolean {
     if (!user) return false;
-    
+
     const rolePermissions = user.Role?.RolePermission || [];
     const userPermissions = user.UserPermission || [];
-    
+
     const rolePerm = rolePermissions.find((p: any) => p.moduleId === moduleId && p[permission] === true);
     if (rolePerm) return true;
-    
+
     const userPerm = userPermissions.find((p: any) => p.moduleId === moduleId && p[permission] === true);
     return !!userPerm;
 }

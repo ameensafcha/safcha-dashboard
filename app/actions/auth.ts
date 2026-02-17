@@ -75,6 +75,10 @@ export async function login(prevState: any, formData: FormData) {
             return { error: 'Invalid credentials' };
         }
 
+        if (!user.isActive) {
+            return { error: 'Your account is deactivated. Talk to CEO.' };
+        }
+
         const passwordsMatch = await bcrypt.compare(password, user.password);
 
         if (!passwordsMatch) {
