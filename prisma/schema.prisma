@@ -1,0 +1,80 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Module {
+    id             String           @id
+    name           String
+    slug           String           @unique
+    type           ModuleType
+    parentId       String?
+    order          Int              @default(0)
+    isActive       Boolean          @default(true)
+    Module         Module?          @relation("ModuleToModule", fields: [parentId], references: [id])
+    other_Module   Module[]         @relation("ModuleToModule")
+    RolePermission RolePermission[]
+    UserPermission UserPermission[]
+
+    @@index([parentId])
+}
+
+model Role {
+    id             String           @id
+    name           String           @unique
+    RolePermission RolePermission[]
+    User           User[]
+}
+
+model RolePermission {
+    id        String  @id
+    roleId    String
+    moduleId  String
+    canCreate Boolean @default(false)
+    canRead   Boolean @default(false)
+    canUpdate Boolean @default(false)
+    canDelete Boolean @default(false)
+    Module    Module  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+    Role      Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+    @@unique([roleId, moduleId])
+    @@index([moduleId])
+    @@index([roleId])
+}
+
+model User {
+    id             String           @id
+    name           String
+    email          String           @unique
+    password       String
+    roleId         String
+    Role           Role             @relation(fields: [roleId], references: [id])
+    UserPermission UserPermission[]
+
+    @@index([roleId])
+}
+
+model UserPermission {
+    id        String  @id
+    userId    String
+    moduleId  String
+    canCreate Boolean @default(false)
+    canRead   Boolean @default(false)
+    canUpdate Boolean @default(false)
+    canDelete Boolean @default(false)
+    Module    Module  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+    User      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([userId, moduleId])
+    @@index([moduleId])
+    @@index([userId])
+}
+
+enum ModuleType {
+    GROUP
+    PAGE
+}
