@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
     LayoutDashboard,
@@ -13,10 +14,34 @@ import {
     ShieldAlert,
     ChevronLeft,
     ChevronRight,
-    Folder
+    Folder,
+    Shield,
+    Boxes,
+    Factory,
+    Wallet,
+    User,
+    Building,
+    GitBranch,
+    Bell,
+    Megaphone,
+    DollarSign,
+    Calendar,
+    Layout,
+    CheckSquare,
+    FolderKanban,
+    UserPlus,
+    Scale,
+    FileSignature,
+    BookOpen,
+    File,
+    Briefcase,
+    Flag,
+    Map,
+    Target
 } from "lucide-react";
 import { ICON_MAP } from "@/lib/icons"; // Import unified icon map
 import LogoutButton from "@/components/LogoutButton";
+import { SettingsButton } from "@/components/SettingsButton";
 import {
     Sidebar,
     SidebarContent,
@@ -44,6 +69,14 @@ const iconMap: { [key: string]: any } = {
     "Settings": Settings,
 };
 
+const itemStyle = (isActive: boolean) => `
+    h-10 transition-all duration-200 rounded-md mx-1 mb-1
+    ${isActive
+        ? 'bg-primary/10 text-primary font-semibold border-l-4 border-primary pl-3 shadow-sm'
+        : 'text-muted-foreground hover:bg-secondary/40 hover:text-foreground hover:pl-3'
+    }
+`;
+
 export default function SidebarComponent({ user }: { user: any }) {
     // ... (rest of code)
     const pathname = usePathname();
@@ -55,15 +88,71 @@ export default function SidebarComponent({ user }: { user: any }) {
 
     // Compute admin access from permissions (permission-based, not hardcoded role name)
     const rolePermissions = user.Role?.RolePermission || [];
-    const isAdmin = user.Role?.name === 'admin' || rolePermissions.some((p: any) =>
-        p.canCreate && p.canUpdate && p.canDelete && p.canRead
-    );
+    const isAdmin = user.Role?.name === 'admin';
 
-    // Filter permissions where canRead is true and flatten Module structure
+    // Load expanded modules from localStorage
+    const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    useEffect(() => {
+        const saved = localStorage.getItem('sidebar_expanded_modules');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                setExpandedModules(new Set(parsed));
+            } catch (e) {
+                console.error('Error parsing sidebar state:', e);
+            }
+        }
+        setIsLoaded(true);
+    }, []);
+
+    const toggleModule = (moduleId: string) => {
+        setExpandedModules(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(moduleId)) {
+                newSet.delete(moduleId);
+            } else {
+                newSet.add(moduleId);
+            }
+            localStorage.setItem('sidebar_expanded_modules', JSON.stringify([...newSet]));
+            return newSet;
+        });
+    };
+
+    const isModuleExpanded = (moduleId: string) => expandedModules.has(moduleId);
+
+    const hasModulePermission = (slug: string, permission: 'canRead' | 'canCreate' | 'canUpdate' | 'canDelete' = 'canRead') => {
+        const modPerm = rolePermissions.find((rp: any) => rp.Module?.slug === slug);
+        return modPerm ? modPerm[permission] : false;
+    };
+
+    // Get modules that have read permission (including children)
+    // First get all child modules with read permission
+    const childModulesWithPermission = rolePermissions
+        .filter((rp: any) => rp.canRead && rp.Module.parentId)
+        .map((rp: any) => rp.Module);
+
+    // Get parent IDs of those children
+    const parentIdsWithChildren = new Set(childModulesWithPermission.map((m: any) => m.parentId));
+
+    // Get all modules that either have read permission OR are parents of modules with permission
     const accessibleModules = rolePermissions
-        .filter((rp: any) => rp.canRead)
+        .filter((rp: any) => {
+            const mod = rp.Module;
+            // Include if has read permission OR is a parent of something with permission
+            return rp.canRead || parentIdsWithChildren.has(mod.id);
+        })
         .map((rp: any) => rp.Module)
         .sort((a: any, b: any) => a.order - b.order);
+
+    // Remove duplicates by id
+    const seen = new Set();
+    const uniqueModules = accessibleModules.filter((m: any) => {
+        if (seen.has(m.id)) return false;
+        seen.add(m.id);
+        return true;
+    });
 
     // Build Module Tree
     const buildTree = (modules: any[]) => {
@@ -87,7 +176,7 @@ export default function SidebarComponent({ user }: { user: any }) {
         return tree;
     };
 
-    const moduleTree = buildTree(accessibleModules);
+    const moduleTree = buildTree(uniqueModules);
 
     const renderModuleIcon = (module: any, className: string) => {
         if (module.icon) {
@@ -107,7 +196,7 @@ export default function SidebarComponent({ user }: { user: any }) {
         // Fallback
         const Icon = iconMap[module.name] || (module.type === 'FOLDER' ? Folder : FileText);
         return <Icon className={className} />;
-    }
+    };
 
     const renderModule = (module: any) => {
         const isActive = pathname === `/${module.slug}`;
@@ -117,19 +206,24 @@ export default function SidebarComponent({ user }: { user: any }) {
         const iconClass = isActive ? "h-4 w-4 mr-3 text-primary" : "h-4 w-4 mr-3 text-muted-foreground";
 
         if (module.type === 'FOLDER') {
+            const isExpanded = isLoaded && isModuleExpanded(module.id);
             return (
                 <SidebarMenuItem key={module.id}>
-                    <Collapsible className="group/collapsible" defaultOpen={isActive}>
+                    <Collapsible 
+                        className="group/collapsible" 
+                        open={isExpanded}
+                        onOpenChange={() => toggleModule(module.id)}
+                    >
                         <SidebarMenuButton asChild tooltip={module.name}>
                             <CollapsibleTrigger asChild>
                                 <div className="flex items-center w-full cursor-pointer font-medium">
                                     {renderModuleIcon(module, iconClass)}
                                     <span>{module.name}</span>
-                                    <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                    <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-150 group-data-[state=open]/collapsible:rotate-90" />
                                 </div>
                             </CollapsibleTrigger>
                         </SidebarMenuButton>
-                        <CollapsibleContent>
+                        <CollapsibleContent className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-up-to-0 data-[state=open]:slide-down-to-0 duration-150 overflow-hidden">
                             <SidebarMenuSub>
                                 {module.children.map((child: any) => renderModule(child))}
                             </SidebarMenuSub>
@@ -145,16 +239,10 @@ export default function SidebarComponent({ user }: { user: any }) {
                     asChild
                     tooltip={module.name}
                     isActive={isActive}
-                    className={`
-                        h-10 transition-all duration-200 rounded-md mx-1 mb-1
-                        ${isActive
-                            ? 'bg-primary/10 text-primary font-semibold border-l-4 border-primary pl-3 shadow-sm'
-                            : 'text-muted-foreground hover:bg-secondary/40 hover:text-foreground hover:pl-3'
-                        }
-                    `}
+                    className={itemStyle(isActive)}
                 >
                     <Link href={`/${module.slug}`} className="flex items-center gap-3">
-                        {renderModuleIcon(module, isActive ? "h-4 w-4" : "h-4 w-4")}
+                        {renderModuleIcon(module, "h-4 w-4")}
                         <span>{module.name}</span>
                     </Link>
                 </SidebarMenuButton>
@@ -163,41 +251,47 @@ export default function SidebarComponent({ user }: { user: any }) {
     };
 
     return (
-        <Sidebar collapsible="icon" className="border-r border-border/50">
-            <SidebarHeader className="py-2">
-                <SidebarTrigger className="ml-auto h-8 w-8" />
-            </SidebarHeader>
-            <SidebarContent className="px-3 py-4">
-                <div className="h-4"></div>
-                <SidebarMenu className="gap-3">
+        <Sidebar collapsible="icon">
+            <SidebarHeader className="py-1">
+                </SidebarHeader>
+            <SidebarContent className="px-2 py-2 overflow-y-auto scrollbar-hide">
+                <div className="h-1"></div>
+                <SidebarMenu className="gap-1">
                     {isAdminDashboard ? (
                         <>
                             <SidebarMenuItem>
                                 <SidebarMenuButton
-                                    className="bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20 shadow-none cursor-default h-12"
-                                    tooltip="Admin Mode Active"
+                                    asChild
+                                    className={itemStyle(pathname === '/dashboard')}
+                                    tooltip="Exit Admin Mode"
                                 >
-                                    <div className="flex items-center justify-center font-bold tracking-wide w-full">
-                                        <ShieldAlert className="h-5 w-5 mr-3" />
-                                        <span>Admin Mode</span>
-                                    </div>
+                                    <Link href="/dashboard" className="flex items-center gap-3">
+                                        <ShieldAlert className="h-4 w-4" />
+                                        <span>Exit Admin Mode</span>
+                                    </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                             <SidebarMenuItem>
-                                <SidebarMenuButton asChild className="hover:bg-sidebar-accent/50" tooltip="Users">
-                                    <Link href="/admindashboard/users" className="font-medium">
-                                        <Users className="h-4 w-4 mr-3" />
+                                <SidebarMenuButton
+                                    asChild
+                                    className={itemStyle(pathname === '/admindashboard/users')}
+                                    tooltip="Users"
+                                >
+                                    <Link href="/admindashboard/users" className="flex items-center gap-3">
+                                        <Users className="h-4 w-4" />
                                         <span>Users</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                             <SidebarMenuItem>
-                                <SidebarMenuButton asChild className="hover:bg-sidebar-accent/50" tooltip="Modules">
-                                    <Link href="/admindashboard/modules" className="font-medium">
-                                        <div className="flex items-center justify-center h-4 w-4 mr-3 border border-dashed border-primary/50 rounded-sm text-primary">
-                                            <span className="text-xs font-bold">+</span>
-                                        </div>
-                                        <span>Modules</span>
+                                <SidebarMenuButton
+                                    asChild
+                                    className={itemStyle(pathname === '/admindashboard/roles')}
+                                    tooltip="Roles"
+                                >
+                                    <Link href="/admindashboard/roles" className="flex items-center gap-3">
+                                        <Shield className="h-4 w-4" />
+                                        <span>Roles</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -208,13 +302,13 @@ export default function SidebarComponent({ user }: { user: any }) {
                                 <SidebarMenuItem>
                                     <SidebarMenuButton
                                         asChild
-                                        className="bg-gradient-to-r from-primary/90 to-primary text-primary-foreground hover:from-primary hover:to-primary/90 shadow-md hover:shadow-lg transition-all duration-300 border border-primary/20"
+                                        className={itemStyle(pathname === '/admindashboard')}
                                         tooltip="Enter Admin Mode"
                                     >
-                                        <a href="/admindashboard" className="font-semibold tracking-wide">
-                                            <ShieldAlert className="h-4 w-4 mr-2" />
+                                        <Link href="/admindashboard" className="flex items-center gap-3">
+                                            <ShieldAlert className="h-4 w-4" />
                                             <span>Admin Mode</span>
-                                        </a>
+                                        </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                             )}
@@ -226,27 +320,20 @@ export default function SidebarComponent({ user }: { user: any }) {
 
             <SidebarFooter>
                 <div className="p-2">
-                    {isAdmin && (
-                        <SidebarMenu>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild tooltip="Settings">
-                                    <Link href="/settings" className="flex items-center gap-3">
-                                        <Settings className="h-4 w-4" />
-                                        <span>Settings</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        </SidebarMenu>
-                    )}
-                    <div className="flex items-center gap-3 mb-1 px-3 py-2 bg-secondary/10 rounded-xl group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:px-0 mt-2">
-                        <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
-                            <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SettingsButton />
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                    <div className="flex items-center gap-3 px-3 py-2 mt-2 border-t pt-3">
+                        <Avatar className="h-9 w-9 border-2 border-primary/20 shadow-sm">
+                            <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
                                 {user.name.charAt(0).toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
-                        <div className="flex flex-col overflow-hidden transition-all duration-300 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0">
+                        <div className="flex flex-col overflow-hidden min-w-0">
                             <span className="text-sm font-semibold truncate text-foreground">{user.name}</span>
-                            <span className="text-xs text-muted-foreground truncate font-medium capitalize flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground truncate font-medium capitalize">
                                 {user.Role?.name || 'User'}
                             </span>
                         </div>

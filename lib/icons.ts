@@ -112,7 +112,14 @@ import {
     FaYelp, FaYenSign, FaYinYang, FaYoutube, FaYoutubeSquare,
     FaZhihu
 } from "react-icons/fa";
-import { Folder, FileText } from "lucide-react"; // Keep these for defaults
+import { 
+    Folder, FileText, LayoutDashboard, ShoppingCart, Package, Factory, Boxes, Wallet,
+    Users, User, Building, GitBranch, Bell, Megaphone, DollarSign, Calendar, Layout,
+    CheckSquare, FolderKanban, UserPlus, Scale, FileSignature, BookOpen, File,
+    Briefcase, Target, Flag, Map, Contact, Building2, Coffee, Truck, Plane,
+    ArrowRightLeft, CheckCircle, FlaskConical, TrendingUp, CreditCard, BarChart, Repeat,
+    Tag, Beaker, Plug
+} from "lucide-react";
 
 export const ICON_MAP: { [key: string]: React.ComponentType<{ className?: string }> } = {
     // FontAwesome Original Set
@@ -231,7 +238,12 @@ export const ICON_MAP: { [key: string]: React.ComponentType<{ className?: string
     FaZhihu,
 
     // Lucide Defaults
-    Folder, FileText
+    Folder, FileText, LayoutDashboard, ShoppingCart, Package, Factory, Boxes, Wallet,
+    Users, User, Building, GitBranch, Bell, Megaphone, DollarSign, Calendar, Layout,
+    CheckSquare, FolderKanban, UserPlus, Scale, FileSignature, BookOpen, File,
+    Briefcase, Target, Flag, Map, Contact, Building2, Coffee, Truck, Plane,
+    ArrowRightLeft, CheckCircle, FlaskConical, TrendingUp, CreditCard, BarChart, Repeat,
+    Tag, Beaker, Plug
 };
 
 export const iconNames = Object.keys(ICON_MAP);

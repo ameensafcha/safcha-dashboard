@@ -170,6 +170,22 @@ function ModuleItem({ module, getChildren, level, onAddChild, onDelete }: {
     const hasChildren = children.length > 0;
     const isFolder = module.type === 'FOLDER';
 
+    const systemModuleIds = [
+        'mod-overview', 'mod-overview-ceo', 'mod-overview-company',
+        'mod-sales', 'mod-sales-orders', 'mod-sales-clients', 'mod-sales-wholesale', 'mod-sales-export', 'mod-sales-invoices',
+        'mod-inventory', 'mod-inventory-raw', 'mod-inventory-finished', 'mod-inventory-movements',
+        'mod-production', 'mod-production-batches', 'mod-production-qc', 'mod-production-rnd',
+        'mod-products', 'mod-products-catalog', 'mod-products-pricing', 'mod-products-formulations',
+        'mod-finance', 'mod-finance-revenue', 'mod-finance-expenses', 'mod-finance-pnl', 'mod-finance-statements', 'mod-finance-subscriptions',
+        'mod-crm', 'mod-crm-contacts', 'mod-crm-companies', 'mod-crm-deals', 'mod-crm-leads',
+        'mod-marketing', 'mod-marketing-campaigns', 'mod-marketing-ads', 'mod-marketing-content',
+        'mod-events', 'mod-events-calendar', 'mod-events-booth', 'mod-events-inventory',
+        'mod-team', 'mod-team-tasks', 'mod-team-projects', 'mod-team-directory', 'mod-team-onboarding',
+        'mod-documents', 'mod-docs-legal', 'mod-docs-contracts', 'mod-docs-sops', 'mod-docs-templates',
+        'mod-strategy', 'mod-strategy-plan', 'mod-strategy-okrs', 'mod-strategy-goals', 'mod-strategy-roadmap'
+    ];
+    const isSystemModule = systemModuleIds.includes(module.id);
+
     const renderIcon = () => {
         if (module.icon) {
             const IconComponent = ICON_MAP[module.icon];
@@ -219,19 +235,21 @@ function ModuleItem({ module, getChildren, level, onAddChild, onDelete }: {
                         </Button>
                     )}
 
-                    {/* Delete Button */}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 hover:bg-destructive/10 hover:text-destructive"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(module.id, module.name);
-                        }}
-                        title="Delete Module"
-                    >
-                        <Trash2 className="h-3 w-3" />
-                    </Button>
+                    {/* Delete Button - Only for non-system modules */}
+                    {!isSystemModule && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 hover:bg-destructive/10 hover:text-destructive"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(module.id, module.name);
+                            }}
+                            title="Delete Module"
+                        >
+                            <Trash2 className="h-3 w-3" />
+                        </Button>
+                    )}
                 </div>
             </div>
 

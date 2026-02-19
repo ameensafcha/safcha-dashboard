@@ -60,6 +60,7 @@ model User {
     updatedAt      DateTime         @updatedAt
     Role           Role             @relation(fields: [roleId], references: [id])
     UserPermission UserPermission[]
+    UserTheme      UserTheme?
 
     @@index([roleId])
 }
@@ -80,8 +81,60 @@ model UserPermission {
     @@index([userId])
 }
 
+model UserTheme {
+    id          String   @id @default(cuid())
+    userId      String   @unique
+    
+    mode        String?  // "light", "dark", "system" (NULL = not set)
+    
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+    
+    User        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    
+    @@index([userId])
+}
+
 enum ModuleType {
     FOLDER
     PAGE
     DASHBOARD
+}
+
+model Category {
+    id          String    @id @default(cuid())
+    name        String
+    slug        String    @unique
+    description String?
+    isActive    Boolean   @default(true)
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    products    Product[]
+
+    @@index([slug])
+}
+
+model Product {
+    id              String    @id @default(cuid())
+    name            String
+    categoryId      String
+    skuPrefix       String
+    description     String?
+    keyIngredients  String?
+    caffeineFree    Boolean   @default(false)
+    sfdaStatus      String    // "Approved", "Pending", "Not Submitted"
+    sfdaReference   String?
+    baseCost        Float
+    baseRetailPrice Float
+    imageUrl        String?
+    status          String    // "Active", "In Development", "Discontinued"
+    launchDate      DateTime?
+    createdAt       DateTime  @default(now())
+    updatedAt       DateTime  @updatedAt
+    
+    category        Category  @relation(fields: [categoryId], references: [id])
+
+    @@index([categoryId])
+    @@index([status])
+    @@index([name])
 }

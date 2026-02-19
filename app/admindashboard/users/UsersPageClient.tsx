@@ -238,7 +238,7 @@ export function UsersPageClient({ users: initialUsers, roles, currentUserId }: U
                                     <SelectValue placeholder="Select role" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {roles.map(role => (
+                                    {roles.filter(r => r.name !== 'admin').map(role => (
                                         <SelectItem key={role.id} value={role.id}>
                                             {role.name}
                                         </SelectItem>
@@ -306,7 +306,7 @@ function ToggleSwitchFormField({ initialValue, isRequired = false }: { initialVa
                     }`}
                 >
                     <span 
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform duration-200 ${
+                        className={`inline-block h-4 w-4 transform rounded-full bg-background shadow-lg transition-transform duration-200 ${
                             isActive ? 'translate-x-6' : 'translate-x-1'
                         }`}
                     />

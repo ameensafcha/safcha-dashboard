@@ -31,7 +31,15 @@ export async function getUsers() {
     }
 
     try {
+        // Get admin role first
+        const adminRole = await prisma.role.findFirst({
+            where: { name: 'admin' }
+        });
+
         const users = await prisma.user.findMany({
+            where: {
+                roleId: adminRole ? { not: adminRole.id } : undefined
+            },
             include: {
                 Role: true
             },
@@ -50,6 +58,9 @@ export async function getUsers() {
 export async function getRoles() {
     try {
         const roles = await prisma.role.findMany({
+            where: {
+                name: { not: 'admin' }
+            },
             orderBy: {
                 name: 'asc'
             }

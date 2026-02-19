@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { UsersPageClient } from "./UsersPageClient";
 
 async function getUsers() {
-    return await prisma.user.findMany({
+    const users = await prisma.user.findMany({
         include: {
             Role: true
         },
@@ -13,6 +13,12 @@ async function getUsers() {
             createdAt: 'desc'
         }
     });
+    
+    return users.map(user => ({
+        ...user,
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt?.toISOString() || '-',
+    }));
 }
 
 async function getRoles() {
