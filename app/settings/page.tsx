@@ -3,6 +3,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { getProfile } from "@/app/actions/profile";
 import { SettingsClient } from "./SettingsClient";
 
+export const revalidate = 60;
+
 export default async function SettingsPage() {
     const currentUser = await getCurrentUser();
 

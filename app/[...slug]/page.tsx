@@ -7,19 +7,20 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 type Props = {
-    params: Promise<{ slug: string }>;
+    params: Promise<{ slug: string[] }>;
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
 export async function generateMetadata(props: Props) {
     const params = await props.params;
-    const module = await prisma.module.findUnique({
-        where: { slug: params.slug },
+    const slug = params.slug.join('/');
+    const currentModule = await prisma.module.findUnique({
+        where: { slug },
         select: { name: true }
     });
 
-    if (!module) return { title: "Not Found" };
-    return { title: `${module.name} - Dashboard` };
+    if (!currentModule) return { title: "Not Found" };
+    return { title: `${currentModule.name} - Dashboard` };
 }
 
 export default async function DynamicModulePage(props: Props) {
@@ -30,10 +31,10 @@ export default async function DynamicModulePage(props: Props) {
         redirect("/login");
     }
 
-    const { slug } = params;
+    const slug = params.slug.join('/');
 
-    // Fetch module with children
-    const module = await prisma.module.findUnique({
+    // Fetch currentModule with children
+    const currentModule = await prisma.module.findUnique({
         where: { slug },
         include: {
             children: {
@@ -43,20 +44,20 @@ export default async function DynamicModulePage(props: Props) {
         }
     });
 
-    if (!module) {
+    if (!currentModule) {
         notFound();
     }
 
     // Check Permissions using hasModulePermission helper
     // This checks both RolePermission and UserPermission tables
-    const hasAccess = hasModulePermission(user, module.id, 'canRead');
+    const hasAccess = hasModulePermission(user, currentModule.id, 'canRead');
 
     if (!hasAccess) {
         return (
             <div className="flex h-full flex-col items-center justify-center space-y-4 p-8">
                 <div className="text-center">
                     <h1 className="text-2xl font-bold text-destructive">Access Denied</h1>
-                    <p className="text-muted-foreground">You do not have permission to view this module.</p>
+                    <p className="text-muted-foreground">You do not have permission to view this currentModule.</p>
                 </div>
                 <Link href="/dashboard" className="text-primary hover:underline">
                     Return to Dashboard
@@ -66,23 +67,23 @@ export default async function DynamicModulePage(props: Props) {
     }
 
     // Resolve Icon
-    let IconComponent: any = module.type === 'FOLDER' ? Package : FileText;
-    if (module.icon && ICON_MAP[module.icon]) {
-        IconComponent = ICON_MAP[module.icon];
-    } else if (module.icon && module.icon.length <= 4) {
+    let IconComponent: any = currentModule.type === 'FOLDER' ? Package : FileText;
+    if (currentModule.icon && ICON_MAP[currentModule.icon]) {
+        IconComponent = ICON_MAP[currentModule.icon];
+    } else if (currentModule.icon && currentModule.icon.length <= 4) {
         // Emoji fallback
-        IconComponent = () => <span className="text-2xl">{module.icon}</span>;
+        IconComponent = () => <span className="text-2xl">{currentModule.icon}</span>;
     }
 
     // Determine content based on type
-    const isFolder = module.type === 'FOLDER';
-    const isDashboard = module.type === 'DASHBOARD';
+    const isFolder = currentModule.type === 'FOLDER';
+    const isDashboard = currentModule.type === 'DASHBOARD';
 
     // Title Logic
-    const isDashboardChild = module.type === 'DASHBOARD' && module.parent;
+    const isDashboardChild = currentModule.type === 'DASHBOARD' && currentModule.parent;
     const pageTitle = isDashboardChild
-        ? `${module.parent?.name} Dashboard`
-        : module.name;
+        ? `${currentModule.parent?.name} Dashboard`
+        : currentModule.name;
 
     return (
         <div className="p-8 space-y-8 animate-in fade-in duration-500">
@@ -95,16 +96,16 @@ export default async function DynamicModulePage(props: Props) {
                     <h1 className="text-3xl font-bold tracking-tight text-foreground">{pageTitle}</h1>
                     <p className="text-muted-foreground mt-1 flex items-center gap-2">
                         <Link href="/dashboard" className="hover:text-primary transition-colors">Home</Link>
-                        {module.parent && (
+                        {currentModule.parent && (
                             <>
                                 <ChevronRight className="h-4 w-4" />
-                                <span className="hover:text-primary transition-colors cursor-default">{module.parent.name}</span>
+                                <span className="hover:text-primary transition-colors cursor-default">{currentModule.parent.name}</span>
                             </>
                         )}
                         {!isDashboardChild && (
                             <>
                                 <ChevronRight className="h-4 w-4" />
-                                <span className="font-medium text-foreground">{module.name}</span>
+                                <span className="font-medium text-foreground">{currentModule.name}</span>
                             </>
                         )}
                         {/* If it IS a dashboard child, we effectively showed "Home > Parent" which maps to this dashboard contextually */}
@@ -116,14 +117,14 @@ export default async function DynamicModulePage(props: Props) {
             {isFolder ? (
                 <div className="space-y-6">
                     <div>
-                        <h2 className="text-xl font-semibold mb-4">Submodules</h2>
-                        {module.children.length === 0 ? (
+                        <h2 className="text-xl font-semibold mb-4">SubcurrentModules</h2>
+                        {currentModule.children.length === 0 ? (
                             <div className="text-muted-foreground italic border border-dashed p-8 rounded-lg text-center">
                                 This folder is empty.
                             </div>
                         ) : (
                             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                {module.children.map((child) => {
+                                {currentModule.children.map((child) => {
                                     let ChildIcon: any = child.type === 'FOLDER' ? Package : FileText;
                                     if (child.icon && ICON_MAP[child.icon]) {
                                         ChildIcon = ICON_MAP[child.icon];
@@ -144,7 +145,7 @@ export default async function DynamicModulePage(props: Props) {
                                                 </CardHeader>
                                                 <CardContent>
                                                     <p className="text-xs text-muted-foreground line-clamp-2">
-                                                        Access the {child.name} module.
+                                                        Access the {child.name} currentModule.
                                                     </p>
                                                 </CardContent>
                                             </Card>
@@ -159,14 +160,14 @@ export default async function DynamicModulePage(props: Props) {
                 <div className="grid gap-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>{module.name}</CardTitle>
+                            <CardTitle>{currentModule.name}</CardTitle>
                             <CardDescription>
-                                Module: {module.slug}
+                                Module: {currentModule.slug}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="min-h-[400px] flex items-center justify-center border-t bg-secondary/5">
                             <div className="text-center space-y-2">
-                                <p className="text-muted-foreground">This module has no content yet.</p>
+                                <p className="text-muted-foreground">This currentModule has no content yet.</p>
                             </div>
                         </CardContent>
                     </Card>

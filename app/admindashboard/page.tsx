@@ -1,4 +1,3 @@
-
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import {
@@ -9,6 +8,8 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { ShieldAlert } from "lucide-react";
+
+export const revalidate = 60;
 
 export default async function AdminDashboardPage() {
     const user = await getCurrentUser();

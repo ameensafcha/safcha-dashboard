@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,7 @@ export type FieldConfig<T extends string> = {
   options?: { label: string; value: string }[];
   placeholder?: string;
   disabled?: boolean;
+  colSpan?: number;
 };
 
 type FormDialogProps<T extends string> = {
@@ -44,6 +45,7 @@ type FormDialogProps<T extends string> = {
   loading?: boolean;
   submitLabel?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  gridCols?: 1 | 2;
 };
 
 export function FormDialog<T extends string>({
@@ -57,14 +59,19 @@ export function FormDialog<T extends string>({
   loading = false,
   submitLabel = 'Save',
   size = 'md',
+  gridCols = 1,
 }: FormDialogProps<T>) {
   const [formData, setFormData] = useState<Record<string, unknown>>({});
+  const [wasOpen, setWasOpen] = useState(false);
+
+  const stableDefaults = useMemo(() => defaultValues, [defaultValues]);
 
   useEffect(() => {
-    if (open) {
-      setFormData(defaultValues || {});
+    if (open && !wasOpen) {
+      setFormData(stableDefaults || {});
     }
-  }, [open]);
+    setWasOpen(open);
+  }, [open, wasOpen, stableDefaults]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,13 +99,12 @@ export function FormDialog<T extends string>({
           )}
         </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+          <div className={`grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2 grid-cols-1 ${gridCols === 2 ? 'md:grid-cols-2' : ''}`}>
             {fields.map((field) => (
               <div
                 key={field.name}
-                className={`grid gap-2 ${
-                  field.type === 'checkbox' ? 'flex items-center gap-2' : ''
-                }`}
+                className={`grid gap-2 ${field.type === 'checkbox' ? 'flex items-center gap-2 h-end pb-2' : ''
+                  } ${field.colSpan === 2 ? 'col-span-1 md:col-span-2' : ''}`}
               >
                 {field.type !== 'checkbox' && (
                   <Label htmlFor={field.name}>

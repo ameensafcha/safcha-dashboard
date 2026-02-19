@@ -5,7 +5,7 @@
 ### Running the Application
 ```bash
 cd sa-db
-npm run dev          # Start development server
+npm run dev          # Start development server (http://localhost:3000)
 npm run build        # Production build
 npm run start        # Start production server
 npm run lint         # Run ESLint
@@ -109,7 +109,99 @@ export function MyComponent({ title, onSubmit }: Props) {
 }
 ```
 
-### Error Handling
+---
+
+## State Management (Zustand)
+
+### Creating a New Store
+All Zustand stores are located in `lib/stores/`. Types are centralized in `lib/types.ts`.
+
+```typescript
+// lib/stores/example-store.ts
+import { create } from 'zustand';
+import type { SomeType } from '@/lib/types';
+
+interface ExampleState {
+  items: SomeType[];
+  selectedItem: SomeType | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+interface ExampleActions {
+  setItems: (items: SomeType[]) => void;
+  setSelectedItem: (item: SomeType | null) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  clear: () => void;
+}
+
+type ExampleStore = ExampleState & ExampleActions;
+
+const initialState: ExampleState = {
+  items: [],
+  selectedItem: null,
+  isLoading: false,
+  error: null,
+};
+
+export const useExampleStore = create<ExampleStore>((set) => ({
+  ...initialState,
+  
+  setItems: (items) => set({ items }),
+  setSelectedItem: (item) => set({ selectedItem: item }),
+  setLoading: (loading) => set({ isLoading: loading }),
+  setError: (error) => set({ error }),
+  clear: () => set(initialState),
+}));
+```
+
+### Export from Index
+Always export stores from `lib/stores/index.ts`:
+```typescript
+export { useExampleStore } from './example-store';
+export type { SomeType } from '@/lib/types';
+```
+
+---
+
+## Server Actions & Permissions
+
+### Authorization Pattern
+All server actions must check permissions. Use the `checkModulePermission` helper:
+
+```typescript
+import { getCurrentUser, checkModulePermission, hasAdminAccess } from '@/lib/auth';
+
+const MODULE_SLUG = 'products'; // module slug from database
+
+export async function createProduct(formData: FormData) {
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return { error: 'Unauthorized' };
+
+  // Check permission - admins bypass this check
+  const hasPermission = await checkModulePermission(
+    currentUser.roleId, 
+    MODULE_SLUG, 
+    'canCreate'
+  );
+  if (!hasPermission && !hasAdminAccess(currentUser)) {
+    return { error: 'Permission denied' };
+  }
+
+  // Proceed with operation
+}
+```
+
+### Permission Types
+- `canCreate` - Add new records
+- `canRead` - View records
+- `canUpdate` - Edit existing records
+- `canDelete` - Remove records
+
+---
+
+## Error Handling
 - Always wrap async operations in try-catch
 - Return proper error objects from server actions
 - Display user-friendly error messages with toast notifications
@@ -125,7 +217,20 @@ try {
 }
 ```
 
-### Database Operations (Prisma)
+---
+
+## Database Operations (Prisma)
+
+### Types Import
+Import types from `lib/types.ts` instead of redefining:
+```typescript
+// Good - use centralized types
+import type { User, Product, Module } from '@/lib/types';
+
+// Avoid redefining types
+```
+
+### Queries
 - Always use transactions for multiple related operations
 - Include proper error handling
 - Use proper select/include for related data
@@ -147,7 +252,35 @@ const user = await prisma.user.findUnique({
 // Avoid N+1 queries - use include instead of separate queries
 ```
 
-### Tailwind CSS
+---
+
+## Performance Guidelines
+
+### Caching Strategy
+Use appropriate caching for each page type:
+
+| Page Type | Caching Strategy |
+|-----------|------------------|
+| Public (login, signup) | `export const dynamic = 'force-static'` |
+| Auth pages (dashboard) | `export const revalidate = 60` |
+| Real-time data | Keep default (no cache) |
+
+```typescript
+// Public page - fully cached
+export const dynamic = 'force-static';
+
+// Auth page - cache for 60 seconds
+export const revalidate = 60;
+```
+
+### Layout Performance
+- `app/layout.tsx` should remain dynamic (`force-dynamic`) for auth state
+- Use `revalidatePath()` after mutations to refresh cached data
+- Avoid fetching data in layout when possible
+
+---
+
+## Tailwind CSS
 - Use shadcn/ui components when available
 - Follow existing class patterns in components
 - Use `cn()` utility for conditional classes
@@ -162,7 +295,9 @@ className={cn(
 )}
 ```
 
-### Server Actions
+---
+
+## Server Actions Best Practices
 - Always include proper return types
 - Validate input with Zod schemas
 - Handle authorization checks
@@ -195,14 +330,20 @@ export async function createUser(formData: FormData) {
 }
 ```
 
-### File Organization
+---
+
+## File Organization
 - Server actions go in `@/app/actions/`
 - Utility functions go in `@/lib/`
+- Zustand stores go in `@/lib/stores/`
+- Types go in `@/lib/types.ts`
 - UI components go in `@/components/ui/` (shadcn) or `@/components/`
 - Page components go in `@/app/[route]/page.tsx`
 - Client components have `'use client'` at the top
 
-### Database Schema (Prisma)
+---
+
+## Database Schema (Prisma)
 - Run `npx prisma generate` after schema changes
 - Run `npx prisma db seed` to populate initial data
 - Use meaningful model names and relationships
@@ -217,19 +358,21 @@ sa-db/
 ├── app/                    # Next.js App Router
 │   ├── actions/           # Server actions
 │   ├── admindashboard/    # Admin module pages
-│   ├── login/            # Authentication
-│   └── [slug]/          # Dynamic routes
+│   ├── login/             # Authentication
+│   └── [slug]/            # Dynamic routes
 ├── components/            # React components
-│   ├── admin/           # Admin-specific components
-│   └── ui/             # shadcn/ui components
-├── lib/                  # Utilities
-│   ├── auth.ts         # Authentication logic
-│   ├── icons.ts        # Icon mappings
-│   └── prisma.ts      # Prisma client
+│   ├── admin/             # Admin-specific components
+│   └── ui/                # shadcn/ui components
+├── lib/                   # Utilities
+│   ├── stores/            # Zustand state management
+│   ├── types.ts           # Centralized types
+│   ├── auth.ts            # Authentication logic
+│   ├── icons.ts           # Icon mappings
+│   └── prisma.ts          # Prisma client
 ├── prisma/
-│   ├── schema.prisma   # Database schema
-│   └── seed.ts        # Seed data
-└── public/             # Static assets
+│   ├── schema.prisma      # Database schema
+│   └── seed.ts            # Seed data
+└── public/                # Static assets
 ```
 
 ---
@@ -251,10 +394,16 @@ sa-db/
 - Use the Roles page to modify permissions
 - Permissions cascade from parent to child modules
 
+### Adding a New Store
+1. Create file in `lib/stores/new-feature-store.ts`
+2. Add types to `lib/types.ts` if needed
+3. Export from `lib/stores/index.ts`
+4. Use in components
+
 ### Environment Variables
 - Copy `.env.example` to `.env` for local development
 - Never commit secrets to version control
-- Required variables: `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`
+- Required variables: `DATABASE_URL`, `SESSION_SECRET`
 
 ### Security Guidelines
 - Always validate user input with Zod schemas

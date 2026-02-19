@@ -1,4 +1,3 @@
-
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -14,6 +13,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+export const runtime = 'nodejs';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,44 +41,61 @@ export default async function RootLayout({
   let themeMode: 'light' | 'dark' | 'system' = DEFAULT_THEME.mode;
 
   if (user) {
+    const plainUser = JSON.parse(JSON.stringify(user));
+
     const userTheme = await prisma.userTheme.findUnique({
       where: { userId: user.id }
     });
 
     if (userTheme && userTheme.mode) {
       const validModes = ['light', 'dark', 'system'] as const;
-      themeMode = validModes.includes(userTheme.mode as 'light' | 'dark' | 'system') 
-        ? userTheme.mode as 'light' | 'dark' | 'system' 
+      themeMode = validModes.includes(userTheme.mode as 'light' | 'dark' | 'system')
+        ? userTheme.mode as 'light' | 'dark' | 'system'
         : 'system';
     }
+
+    return (
+      <html lang="en" suppressHydrationWarning>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
+          <SessionProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme={themeMode}
+              enableSystem
+              disableTransitionOnChange
+              storageKey="safcha-theme-v2"
+            >
+              <ThemeModeProvider initialMode={themeMode}>
+                <ThemeScript />
+                <SidebarProvider>
+                  <SidebarWrapper user={plainUser} />
+                  <main className="flex-1 min-h-screen bg-background text-foreground w-full">
+                    <div className="p-4 lg:hidden">
+                      <MobileSidebarToggle />
+                    </div>
+                    {children}
+                  </main>
+                </SidebarProvider>
+                <Toaster />
+              </ThemeModeProvider>
+            </ThemeProvider>
+          </SessionProvider>
+        </body>
+      </html>
+    );
   }
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <SessionProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme={themeMode}
-            enableSystem
-            disableTransitionOnChange
-            storageKey="safcha-theme-v2"
-          >
-            <ThemeModeProvider initialMode={themeMode}>
-              <ThemeScript />
-              <SidebarProvider>
-                <SidebarWrapper user={user} />
-                <main className="flex-1 min-h-screen bg-background text-foreground w-full">
-                  <div className="p-4 lg:hidden">
-                    <MobileSidebarToggle />
-                  </div>
-                  {children}
-                </main>
-              </SidebarProvider>
-              <Toaster />
-            </ThemeModeProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+            <main className="min-h-screen bg-background text-foreground">
+              {children}
+            </main>
+            <Toaster />
           </ThemeProvider>
         </SessionProvider>
       </body>

@@ -75,14 +75,14 @@ type CategoryFormData = {
 const productFields: FieldConfig<keyof ProductFormData>[] = [
   { name: 'name', label: 'Product Name', type: 'text', required: true, placeholder: 'e.g., Safcha Ceremonial Blend' },
   { name: 'categoryId', label: 'Category', type: 'select', required: true, options: [] },
-  { name: 'skuPrefix', label: 'SKU Prefix', type: 'text', required: true, placeholder: 'e.g., SCB', disabled: true },
+  { name: 'skuPrefix', label: 'SKU Prefix', type: 'text', required: true, placeholder: 'e.g., SCB' },
   { name: 'description', label: 'Description', type: 'textarea' },
   { name: 'keyIngredients', label: 'Key Ingredients', type: 'text', placeholder: 'e.g., Premium Safcha leaves' },
   { name: 'caffeineFree', label: 'Caffeine Free', type: 'checkbox' },
-  { 
-    name: 'sfdaStatus', 
-    label: 'SFDA Status', 
-    type: 'select', 
+  {
+    name: 'sfdaStatus',
+    label: 'SFDA Status',
+    type: 'select',
     required: true,
     options: [
       { label: 'Approved', value: 'Approved' },
@@ -93,10 +93,10 @@ const productFields: FieldConfig<keyof ProductFormData>[] = [
   { name: 'sfdaReference', label: 'SFDA Reference', type: 'text' },
   { name: 'baseCost', label: 'Base Cost (SAR/kg)', type: 'number', required: true },
   { name: 'baseRetailPrice', label: 'Base Retail Price (SAR)', type: 'number', required: true },
-  { 
-    name: 'status', 
-    label: 'Status', 
-    type: 'select', 
+  {
+    name: 'status',
+    label: 'Status',
+    type: 'select',
     required: true,
     options: [
       { label: 'Active', value: 'Active' },
@@ -127,12 +127,10 @@ export function ProductsClient({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Product Dialog State
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productLoading, setProductLoading] = useState(false);
 
-  // Category Dialog State
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [categoryLoading, setCategoryLoading] = useState(false);
 
@@ -149,7 +147,7 @@ export function ProductsClient({
       10
     );
     setLoading(false);
-    
+
     if (result.success) {
       setProducts(result.products);
       setTotalPages(result.totalPages);
@@ -164,22 +162,30 @@ export function ProductsClient({
   };
 
   const handleProductSubmit = async (data: Record<string, unknown>) => {
+    console.log('[handleProductSubmit] Submitting data:', data);
     setProductLoading(true);
     const formData = new FormData();
     Object.entries(data).forEach(([key, value]) => {
-      formData.append(key, String(value));
+      if (value !== undefined && value !== '') {
+        formData.append(key, String(value));
+      }
     });
 
     let result;
-    if (editingProduct) {
-      result = await updateProduct(editingProduct.id, formData);
-    } else {
-      result = await createProduct(formData);
+    try {
+      if (editingProduct) {
+        result = await updateProduct(editingProduct.id, formData);
+      } else {
+        result = await createProduct(formData);
+      }
+    } catch (err) {
+      console.log('[handleProductSubmit] Exception:', err);
     }
 
+    console.log('[handleProductSubmit] Result:', result);
     setProductLoading(false);
 
-    if (result.success) {
+    if (result && result.success) {
       toast({
         title: editingProduct ? 'Product updated' : 'Product created',
         description: editingProduct ? 'Product has been updated.' : 'New product has been created.',
@@ -190,7 +196,7 @@ export function ProductsClient({
     } else {
       toast({
         title: 'Error',
-        description: result.error || 'Something went wrong',
+        description: result?.error || 'Something went wrong',
         variant: 'destructive',
       });
     }
@@ -253,36 +259,40 @@ export function ProductsClient({
 
   const columns: ColumnDef<Product>[] = [
     { accessorKey: 'name', header: 'Product Name' },
-    { 
-      accessorKey: 'category.name', 
+    {
+      accessorKey: 'category.name',
       header: 'Category',
       cell: (row) => row.category?.name || '-',
     },
-    { accessorKey: 'skuPrefix', header: 'SKU Prefix' },
-    { accessorKey: 'baseCost', header: 'Cost (SAR/kg)', cell: (row) => `SAR ${row.baseCost.toFixed(2)}` },
-    { accessorKey: 'baseRetailPrice', header: 'Price (SAR)', cell: (row) => `SAR ${row.baseRetailPrice.toFixed(2)}` },
-    { 
-      accessorKey: 'sfdaStatus', 
-      header: 'SFDA Status',
+    { accessorKey: 'skuPrefix', header: 'SKU' },
+    { accessorKey: 'baseCost', header: 'Cost', cell: (row) => `SAR ${row.baseCost.toFixed(2)}` },
+    { accessorKey: 'baseRetailPrice', header: 'Price', cell: (row) => `SAR ${row.baseRetailPrice.toFixed(2)}` },
+    { accessorKey: 'keyIngredients', header: 'Ingredients', cell: (row) => row.keyIngredients || '-' },
+    {
+      accessorKey: 'caffeineFree',
+      header: 'Caffeine Free',
+      cell: (row) => row.caffeineFree ? 'Yes' : 'No'
+    },
+    {
+      accessorKey: 'sfdaStatus',
+      header: 'SFDA',
       cell: (row) => (
-        <span className={`px-2 py-1 rounded-full text-xs ${
-          row.sfdaStatus === 'Approved' ? 'bg-green-100 text-green-800' :
-          row.sfdaStatus === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-          'bg-gray-100 text-gray-800'
-        }`}>
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.sfdaStatus === 'Approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+            row.sfdaStatus === 'Pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+              'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+          }`}>
           {row.sfdaStatus}
         </span>
       ),
     },
-    { 
-      accessorKey: 'status', 
+    {
+      accessorKey: 'status',
       header: 'Status',
       cell: (row) => (
-        <span className={`px-2 py-1 rounded-full text-xs ${
-          row.status === 'Active' ? 'bg-green-100 text-green-800' :
-          row.status === 'In Development' ? 'bg-blue-100 text-blue-800' :
-          'bg-red-100 text-red-800'
-        }`}>
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.status === 'Active' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+            row.status === 'In Development' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' :
+              'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+          }`}>
           {row.status}
         </span>
       ),
@@ -295,9 +305,6 @@ export function ProductsClient({
     if (field.name === 'categoryId') {
       return { ...field, options: categoryOptions };
     }
-    if (field.name === 'skuPrefix' && !editingProduct) {
-      return { ...field, disabled: false };
-    }
     return field;
   });
 
@@ -307,14 +314,27 @@ export function ProductsClient({
     skuPrefix: editingProduct.skuPrefix,
     description: editingProduct.description || '',
     keyIngredients: editingProduct.keyIngredients || '',
-    caffeineFree: editingProduct.caffeineFree ? 'true' : 'false',
+    caffeineFree: editingProduct.caffeineFree,
     sfdaStatus: editingProduct.sfdaStatus,
     sfdaReference: editingProduct.sfdaReference || '',
     baseCost: String(editingProduct.baseCost),
     baseRetailPrice: String(editingProduct.baseRetailPrice),
     status: editingProduct.status,
     launchDate: editingProduct.launchDate ? String(editingProduct.launchDate).split('T')[0] : '',
-  } : { caffeineFree: 'false' };
+  } : { 
+    name: '',
+    categoryId: '',
+    skuPrefix: '', 
+    description: '',
+    keyIngredients: '',
+    caffeineFree: false, 
+    sfdaStatus: 'Pending',
+    sfdaReference: '',
+    baseCost: '',
+    baseRetailPrice: '',
+    status: 'Active',
+    launchDate: ''
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -366,7 +386,6 @@ export function ProductsClient({
         searchKeys={['name', 'skuPrefix', 'description']}
       />
 
-      {/* Product Dialog */}
       <FormDialog
         open={productDialogOpen}
         onOpenChange={(open) => { setProductDialogOpen(open); if (!open) setEditingProduct(null); }}
@@ -380,7 +399,6 @@ export function ProductsClient({
         defaultValues={defaultValues}
       />
 
-      {/* Category Dialog */}
       <FormDialog
         open={categoryDialogOpen}
         onOpenChange={setCategoryDialogOpen}
@@ -393,7 +411,6 @@ export function ProductsClient({
         size="sm"
       />
 
-      {/* Categories List */}
       {categories.length > 0 && (
         <div className="mt-8">
           <h3 className="text-lg font-semibold mb-4">Existing Categories</h3>

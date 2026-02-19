@@ -15,7 +15,7 @@ export async function encrypt(payload: any) {
     return await new SignJWT(payload)
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
-        .setExpirationTime('24h') // Session expires in 24 hours
+        .setExpirationTime('24h')
         .sign(key);
 }
 
@@ -72,7 +72,7 @@ export async function getCurrentUser() {
 }
 
 export async function loginSession(userId: string) {
-    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const session = await encrypt({ userId, expires });
 
     (await cookies()).set('session', session, {
@@ -116,4 +116,32 @@ export function hasModulePermission(user: any, moduleId: string, permission: 'ca
 
     const userPerm = userPermissions.find((p: any) => p.moduleId === moduleId && p[permission] === true);
     return !!userPerm;
+}
+
+export async function checkModulePermission(
+    roleId: string,
+    moduleSlug: string,
+    permission: 'canCreate' | 'canRead' | 'canUpdate' | 'canDelete'
+): Promise<boolean> {
+    try {
+        const module = await prisma.module.findUnique({
+            where: { slug: moduleSlug }
+        });
+        
+        if (!module) return false;
+        
+        const rolePermission = await prisma.rolePermission.findUnique({
+            where: {
+                roleId_moduleId: {
+                    roleId,
+                    moduleId: module.id
+                }
+            }
+        });
+        
+        return rolePermission ? rolePermission[permission] : false;
+    } catch (error) {
+        console.error('Error checking module permission:', error);
+        return false;
+    }
 }

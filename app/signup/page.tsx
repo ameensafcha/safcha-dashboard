@@ -5,6 +5,8 @@ import { signup } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+export const dynamic = 'force-static';
+
 export default function SignupPage() {
     const router = useRouter();
     const [state, formAction, isPending] = useActionState(signup, undefined);

@@ -1,9 +1,11 @@
 'use server'
 
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, checkModulePermission, hasAdminAccess } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+
+const MODULE_SLUG = 'products';
 
 function slugify(text: string): string {
   return text
@@ -39,6 +41,11 @@ export async function createCategory(formData: FormData) {
       return { error: 'Unauthorized' };
     }
 
+    const hasPermission = await checkModulePermission(currentUser.roleId, MODULE_SLUG, 'canCreate');
+    if (!hasPermission && !hasAdminAccess(currentUser)) {
+      return { error: 'Permission denied' };
+    }
+
     const rawData = {
       name: formData.get('name'),
       description: formData.get('description') || undefined,
@@ -72,6 +79,11 @@ export async function deleteCategory(id: string) {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       return { error: 'Unauthorized' };
+    }
+
+    const hasPermission = await checkModulePermission(currentUser.roleId, MODULE_SLUG, 'canDelete');
+    if (!hasPermission && !hasAdminAccess(currentUser)) {
+      return { error: 'Permission denied' };
     }
 
     const productCount = await prisma.product.count({
@@ -180,7 +192,7 @@ const productSchema = z.object({
   skuPrefix: z.string().min(1, 'SKU Prefix is required').max(10),
   description: z.string().optional(),
   keyIngredients: z.string().optional(),
-  caffeineFree: z.coerce.boolean().default(false),
+  caffeineFree: z.preprocess((val) => val === 'true' || val === 'on', z.boolean()),
   sfdaStatus: z.enum(['Approved', 'Pending', 'Not Submitted']),
   sfdaReference: z.string().optional(),
   baseCost: z.coerce.number().min(0, 'Base cost must be positive'),
@@ -192,6 +204,11 @@ const productSchema = z.object({
 export async function createProduct(formData: FormData) {
   const currentUser = await getCurrentUser();
   if (!currentUser) return { error: 'Unauthorized' };
+
+  const hasPermission = await checkModulePermission(currentUser.roleId, MODULE_SLUG, 'canCreate');
+  if (!hasPermission && !hasAdminAccess(currentUser)) {
+    return { error: 'Permission denied' };
+  }
 
   const rawData = {
     name: formData.get('name'),
@@ -235,6 +252,11 @@ export async function updateProduct(id: string, formData: FormData) {
   const currentUser = await getCurrentUser();
   if (!currentUser) return { error: 'Unauthorized' };
 
+  const hasPermission = await checkModulePermission(currentUser.roleId, MODULE_SLUG, 'canUpdate');
+  if (!hasPermission && !hasAdminAccess(currentUser)) {
+    return { error: 'Permission denied' };
+  }
+
   const rawData = {
     name: formData.get('name'),
     categoryId: formData.get('categoryId'),
@@ -277,6 +299,11 @@ export async function updateProduct(id: string, formData: FormData) {
 export async function deleteProduct(id: string) {
   const currentUser = await getCurrentUser();
   if (!currentUser) return { error: 'Unauthorized' };
+
+  const hasPermission = await checkModulePermission(currentUser.roleId, MODULE_SLUG, 'canDelete');
+  if (!hasPermission && !hasAdminAccess(currentUser)) {
+    return { error: 'Permission denied' };
+  }
 
   try {
     await prisma.product.delete({
